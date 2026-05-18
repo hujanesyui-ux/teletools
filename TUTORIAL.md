@@ -11,16 +11,18 @@
 3. [Konfigurasi Bot](#-3-konfigurasi-bot)
 4. [Menjalankan Bot](#-4-menjalankan-bot)
 5. [Fitur Anti-Spam](#-5-fitur-anti-spam)
-6. [Fitur Welcome](#-6-fitur-welcome)
-7. [Fitur Member Scraper](#-7-fitur-member-scraper)
-8. [Fitur Auto-Reply](#-8-fitur-auto-reply)
-9. [Fitur Auto-Poster](#-9-fitur-auto-poster)
-10. [Fitur Cross-Post](#-10-fitur-cross-post)
-11. [Fitur Analytics](#-11-fitur-analytics)
-12. [Menu Settings](#-12-menu-settings)
-13. [Tips & Trik](#-13-tips--trik)
-14. [Troubleshooting](#-14-troubleshooting)
-15. [FAQ](#-15-faq)
+6. [Fitur Captcha Verification](#-6-fitur-captcha-verification)
+7. [Fitur Forced Join](#-7-fitur-forced-join)
+8. [Fitur Welcome](#-8-fitur-welcome)
+9. [Fitur Member Scraper](#-9-fitur-member-scraper)
+10. [Fitur Auto-Reply](#-10-fitur-auto-reply)
+11. [Fitur Auto-Poster](#-11-fitur-auto-poster)
+12. [Fitur Cross-Post](#-12-fitur-cross-post)
+13. [Fitur Analytics](#-13-fitur-analytics)
+14. [Menu Settings](#-14-menu-settings)
+15. [Tips & Trik](#-15-tips--trik)
+16. [Troubleshooting](#-16-troubleshooting)
+17. [FAQ](#-17-faq)
 
 ---
 
@@ -252,7 +254,164 @@ Bot: 🛡 Spam terdeteksi!
 
 ---
 
-## 👋 6. FITUR WELCOME
+## 🔐 6. FITUR CAPTCHA VERIFICATION
+
+### Cara Kerja:
+
+Member baru join → otomatis di-mute → harus jawab captcha → baru bisa chat.
+Kalau gagal/timeout → otomatis di-kick.
+
+**Tujuan:** Mencegah bot spam join grup kamu.
+
+### 2 Tipe Captcha:
+
+| Tipe | Cara Kerja |
+|------|-----------|
+| `math` | Soal matematika random (contoh: `7 + 3 = ?`) dengan 4 pilihan jawaban |
+| `button` | Muncul 6 emoji, user harus klik emoji yang diminta |
+
+### Command:
+
+| Command | Fungsi |
+|---------|--------|
+| `/captcha` | Lihat status & pengaturan |
+| `/captcha on` | Aktifkan captcha |
+| `/captcha off` | Nonaktifkan captcha |
+| `/captcha type math` | Ubah ke soal matematika |
+| `/captcha type button` | Ubah ke klik emoji |
+
+### Contoh - Math Captcha:
+
+```
+-- User baru join --
+Bot: 🔐 Verifikasi Captcha
+
+     Halo @newuser!
+     Selesaikan soal berikut untuk bisa chat:
+
+     7 + 3 = ?
+
+     ⏱ Waktu: 120 detik
+     ❌ Salah/timeout = kick otomatis
+
+     [10] [8]
+     [12] [7]
+```
+
+User klik `10` → Benar → Unmute → Bisa chat! 🎉
+User klik jawaban salah → Kick!
+120 detik tidak jawab → Kick!
+
+### Contoh - Button Captcha:
+
+```
+Bot: 🔐 Verifikasi Captcha
+
+     Halo @newuser!
+     Klik emoji 🍎 untuk verifikasi:
+
+     [🍊] [🍋] [🍎]
+     [🍇] [🍓] [🥝]
+```
+
+User klik 🍎 → Benar → Unmute!
+
+### Konfigurasi di config.py:
+
+```python
+# Tipe captcha: "math" atau "button"
+CAPTCHA_TYPE = "math"
+
+# Timeout (detik) - setelah ini user di-kick
+CAPTCHA_TIMEOUT = 120  # 2 menit
+```
+
+---
+
+## 🔒 7. FITUR FORCED JOIN
+
+### Cara Kerja:
+
+User **wajib join beberapa channel/grup** tertentu sebelum bisa chat.
+Persis seperti sistem "join 3 channel dulu baru bisa masuk" yang sering kamu lihat.
+
+**Alur:**
+1. Admin set daftar channel yang wajib di-join
+2. User kirim pesan di grup
+3. Bot cek: sudah join semua channel belum?
+4. **Belum** → pesan dihapus + muncul tombol join
+5. **Sudah** → bisa chat normal
+
+### Command:
+
+| Command | Fungsi |
+|---------|--------|
+| `/forcejoin` | Lihat status & daftar |
+| `/forcejoin on` | Aktifkan forced join |
+| `/forcejoin off` | Nonaktifkan |
+| `/addforcejoin [id] [link]` | Tambah channel wajib |
+| `/removeforcejoin [id]` | Hapus channel |
+| `/forcejoinlist` | Lihat semua channel wajib |
+
+### Setup Step-by-Step:
+
+**Langkah 1: Jadikan bot admin di channel target**
+```
+Buka channel → Edit → Administrators → Tambah bot
+```
+
+**Langkah 2: Dapatkan channel ID**
+```
+Forward pesan dari channel ke @userinfobot
+Format: -1001234567890
+```
+
+**Langkah 3: Tambah channel**
+```
+/addforcejoin -1001234567890 https://t.me/channel1
+/addforcejoin -1009876543210 https://t.me/channel2
+/addforcejoin -1001111222333 https://t.me/channel3
+```
+
+**Langkah 4: Aktifkan**
+```
+/forcejoin on
+```
+
+### Contoh Tampilan ke User:
+
+```
+🔒 Akses Terbatas!
+
+@user, kamu harus join channel berikut
+sebelum bisa chat di grup ini:
+
+  1. ❌ Channel Gaming
+  2. ❌ Channel Tutorial
+  3. ❌ Channel News
+
+Total belum join: 3/3
+
+[📡 Join Channel Gaming]
+[📡 Join Channel Tutorial]
+[📡 Join Channel News]
+[✅ Sudah Join Semua - Verifikasi]
+```
+
+User klik join semua → klik "Sudah Join Semua" → Bot verifikasi → Bisa chat! 🎉
+
+### Catatan Penting:
+
+```
+⚠️ Bot HARUS jadi admin di semua channel target
+⚠️ Invite link harus valid (https://t.me/namachannel)
+⚠️ Admin grup tidak terkena forced join
+⚠️ Reminder otomatis hilang setelah 60 detik
+```
+
+---
+
+## 👋 8. FITUR WELCOME
 
 ### Cara Kerja:
 
@@ -301,7 +460,7 @@ Silakan baca rules dan perkenalkan diri ya! 👋
 
 ---
 
-## 📋 7. FITUR MEMBER SCRAPER
+## 📋 9. FITUR MEMBER SCRAPER
 
 ### Cara Kerja:
 
@@ -362,7 +521,7 @@ Untuk scrape **semua** member, diperlukan Userbot (Telethon/Pyrogram).
 
 ---
 
-## 💬 8. FITUR AUTO-REPLY
+## 💬 10. FITUR AUTO-REPLY
 
 ### Cara Kerja:
 
@@ -398,7 +557,7 @@ Bot: ✅ Auto-reply message berhasil diupdate!
 
 ---
 
-## 📮 9. FITUR AUTO-POSTER
+## 📮 11. FITUR AUTO-POSTER
 
 ### Cara Kerja:
 
@@ -447,7 +606,7 @@ Bot: ✅ Jadwal posting #1 dibatalkan.
 
 ---
 
-## 📡 10. FITUR CROSS-POST
+## 📡 12. FITUR CROSS-POST
 
 ### Cara Kerja:
 
@@ -503,7 +662,7 @@ Bot: 📡 Cross-Post Selesai!
 
 ---
 
-## 📊 11. FITUR ANALYTICS
+## 📊 13. FITUR ANALYTICS
 
 ### Cara Kerja:
 
@@ -571,7 +730,7 @@ Periode: 7 hari terakhir
 
 ---
 
-## ⚙️ 12. MENU SETTINGS
+## ⚙️ 14. MENU SETTINGS
 
 ### Cara Akses:
 
@@ -611,7 +770,26 @@ Klik tombol di bawah untuk mengatur fitur:
 
 ---
 
-## 💡 13. TIPS & TRIK
+## 💡 15. TIPS & TRIK
+
+### Captcha:
+
+```
+✅ Gunakan math captcha untuk keamanan lebih tinggi
+✅ Set timeout 120 detik (cukup waktu untuk manusia)
+✅ Kombinasi dengan welcome message (captcha dulu, baru welcome)
+❌ Jangan set timeout terlalu pendek (user baru bisa bingung)
+```
+
+### Forced Join:
+
+```
+✅ Maksimal 3-4 channel wajib (jangan terlalu banyak)
+✅ Pastikan channel yang diwajibkan punya konten menarik
+✅ Sertakan invite link yang valid
+✅ Kombinasikan dengan welcome yang jelaskan kenapa harus join
+❌ Jangan paksa join terlalu banyak channel (user kabur)
+```
 
 ### Anti-Spam:
 
@@ -658,7 +836,7 @@ Klik tombol di bawah untuk mengatur fitur:
 
 ---
 
-## 🔧 14. TROUBLESHOOTING
+## 🔧 16. TROUBLESHOOTING
 
 ### Bot Tidak Jalan
 
@@ -704,6 +882,25 @@ Klik tombol di bawah untuk mengatur fitur:
 4. Pastikan bot tidak di-ban dari channel
 ```
 
+### Captcha Tidak Muncul
+
+```
+1. Pastikan /captcha on sudah dijalankan
+2. Bot harus admin dengan izin "Restrict Members"
+3. Pastikan "Chat Member Updates" aktif
+4. Cek apakah user yang join bukan bot
+```
+
+### Forced Join Tidak Bekerja
+
+```
+1. Pastikan /forcejoin on sudah dijalankan
+2. Bot HARUS jadi admin di channel target (untuk cek membership)
+3. Pastikan channel ID benar (format: -100xxxxxxxxxx)
+4. Cek apakah invite link valid
+5. Admin grup tidak terkena forced join (by design)
+```
+
 ### Database Error
 
 ```
@@ -713,7 +910,7 @@ Klik tombol di bawah untuk mengatur fitur:
 
 ---
 
-## ❓ 15. FAQ
+## ❓ 17. FAQ
 
 ### Q: Apakah bot ini gratis?
 **A:** Ya, 100% gratis dan open source.
@@ -787,6 +984,13 @@ python3 main.py
 ---
 
 ## 📝 CHANGELOG
+
+### v1.1.0 (Latest)
+- ✅ Captcha Verification (math + button captcha)
+- ✅ Forced Join (wajib join channel sebelum chat)
+- ✅ Auto-kick pada timeout/gagal captcha
+- ✅ Verifikasi button untuk forced join
+- ✅ Database migration otomatis
 
 ### v1.0.0 (Initial Release)
 - ✅ Anti-Spam (keyword, flood, link detection)
