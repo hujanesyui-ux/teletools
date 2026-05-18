@@ -25,6 +25,7 @@ from handlers.autoreply import AutoReplyHandler
 from handlers.autoposter import AutoPosterHandler
 from handlers.crosspost import CrossPostHandler
 from handlers.analytics import AnalyticsHandler
+from handlers.settings import SettingsHandler
 from keyboards.inline import start_keyboard
 
 # Setup logging
@@ -102,6 +103,7 @@ async def post_init(application):
     commands = [
         BotCommand("start", "Mulai bot"),
         BotCommand("help", "Lihat bantuan"),
+        BotCommand("settings", "Pengaturan lengkap"),
         BotCommand("antispam", "Pengaturan anti-spam"),
         BotCommand("welcome", "Pengaturan welcome"),
         BotCommand("scrape", "Scrape member grup"),
@@ -128,10 +130,12 @@ def main():
     autoposter = AutoPosterHandler(db, app)
     crosspost = CrossPostHandler(db)
     analytics = AnalyticsHandler(db)
+    settings = SettingsHandler(db)
 
     # Basic commands
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("help", help_command))
+    app.add_handler(CommandHandler("settings", settings.command))
 
     # Anti-Spam handlers
     app.add_handler(CommandHandler("antispam", antispam.command))
@@ -178,6 +182,7 @@ def main():
     app.add_handler(ChatMemberHandler(analytics.track_member_change, ChatMemberHandler.CHAT_MEMBER), group=4)
 
     # Callback query handler (untuk inline buttons)
+    app.add_handler(CallbackQueryHandler(settings.handle_settings_callback, pattern="^(set_|toggle_|action_)"))
     app.add_handler(CallbackQueryHandler(handle_callback))
 
     # Run bot
