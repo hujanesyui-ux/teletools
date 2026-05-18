@@ -23,13 +23,18 @@ class AutoPosterHandler:
     def _setup_scheduler(self):
         """Setup APScheduler untuk posting terjadwal"""
         try:
+            import asyncio
             from apscheduler.schedulers.asyncio import AsyncIOScheduler
-            from apscheduler.triggers.date import DateTrigger
-            import pytz
+
+            # Fix untuk Python 3.10+: buat event loop jika belum ada
+            try:
+                asyncio.get_event_loop()
+            except RuntimeError:
+                asyncio.set_event_loop(asyncio.new_event_loop())
 
             self.scheduler = AsyncIOScheduler(timezone=POSTER_TIMEZONE)
-            self.scheduler.start()
-            logger.info("Auto-poster scheduler started")
+            # Jangan start di sini, akan di-start saat bot running
+            logger.info("Auto-poster scheduler initialized")
         except ImportError:
             self.scheduler = None
             logger.warning("APScheduler not installed, auto-poster disabled")

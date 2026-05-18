@@ -152,6 +152,10 @@ def main():
     captcha = CaptchaHandler(db)
     forcejoin = ForceJoinHandler(db)
 
+    # Start scheduler for auto-poster
+    if autoposter.scheduler:
+        autoposter.scheduler.start()
+
     # Basic commands
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("help", help_command))
