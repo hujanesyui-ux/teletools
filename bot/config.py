@@ -53,5 +53,12 @@ ADMIN_IDS = [
     # Contoh: 123456789,
 ]
 
+# Captcha Settings
+CAPTCHA_TYPE = "math"  # "math" atau "button"
+CAPTCHA_TIMEOUT = 120  # Detik sebelum user di-kick (default: 2 menit)
+
+# Forced Join Settings
+FORCEJOIN_ENABLED = False  # Default off
+
 # Logging
 LOG_LEVEL = "INFO"

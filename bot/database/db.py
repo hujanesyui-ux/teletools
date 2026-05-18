@@ -126,6 +126,37 @@ class Database:
             )
         """)
 
+        # Tabel forced join channels
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS forcejoin_channels (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                chat_id INTEGER NOT NULL,
+                channel_id INTEGER NOT NULL,
+                channel_title TEXT,
+                invite_link TEXT,
+                added_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(chat_id, channel_id)
+            )
+        """)
+
+        # Migrasi: tambah kolom baru ke group_settings jika belum ada
+        try:
+            cursor.execute("ALTER TABLE group_settings ADD COLUMN captcha_enabled INTEGER DEFAULT 0")
+        except sqlite3.OperationalError:
+            pass
+        try:
+            cursor.execute("ALTER TABLE group_settings ADD COLUMN captcha_type TEXT DEFAULT 'math'")
+        except sqlite3.OperationalError:
+            pass
+        try:
+            cursor.execute("ALTER TABLE group_settings ADD COLUMN forcejoin_enabled INTEGER DEFAULT 0")
+        except sqlite3.OperationalError:
+            pass
+        try:
+            cursor.execute("ALTER TABLE group_settings ADD COLUMN spam_action TEXT DEFAULT 'mute'")
+        except sqlite3.OperationalError:
+            pass
+
         conn.commit()
         conn.close()
 
@@ -465,3 +496,45 @@ class Database:
         """, (user_id, time.time(), time.time()))
         conn.commit()
         conn.close()
+
+    # ============ FORCED JOIN CHANNELS ============
+
+    def add_forcejoin_channel(self, chat_id: int, channel_id: int,
+                              channel_title: str = None, invite_link: str = None) -> bool:
+        """Tambah channel wajib join"""
+        conn = self._get_conn()
+        cursor = conn.cursor()
+        try:
+            cursor.execute("""
+                INSERT INTO forcejoin_channels (chat_id, channel_id, channel_title, invite_link)
+                VALUES (?, ?, ?, ?)
+            """, (chat_id, channel_id, channel_title, invite_link))
+            conn.commit()
+            conn.close()
+            return True
+        except sqlite3.IntegrityError:
+            conn.close()
+            return False
+
+    def remove_forcejoin_channel(self, chat_id: int, channel_id: int) -> bool:
+        """Hapus channel dari daftar forced join"""
+        conn = self._get_conn()
+        cursor = conn.cursor()
+        cursor.execute("""
+            DELETE FROM forcejoin_channels WHERE chat_id = ? AND channel_id = ?
+        """, (chat_id, channel_id))
+        affected = cursor.rowcount
+        conn.commit()
+        conn.close()
+        return affected > 0
+
+    def get_forcejoin_channels(self, chat_id: int) -> list:
+        """Ambil daftar channel wajib join untuk sebuah grup"""
+        conn = self._get_conn()
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT * FROM forcejoin_channels WHERE chat_id = ? ORDER BY added_at ASC
+        """, (chat_id,))
+        rows = cursor.fetchall()
+        conn.close()
+        return [dict(row) for row in rows]

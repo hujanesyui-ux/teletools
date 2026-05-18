@@ -26,6 +26,8 @@ from handlers.autoposter import AutoPosterHandler
 from handlers.crosspost import CrossPostHandler
 from handlers.analytics import AnalyticsHandler
 from handlers.settings import SettingsHandler
+from handlers.captcha import CaptchaHandler
+from handlers.forcejoin import ForceJoinHandler
 from keyboards.inline import start_keyboard
 
 # Setup logging
@@ -50,6 +52,8 @@ async def start(update: Update, context):
         f"<b>Fitur tersedia:</b>\n"
         f"🛡 Anti-Spam - Filter spam otomatis\n"
         f"👋 Welcome - Sambut member baru\n"
+        f"🔐 Captcha - Verifikasi member baru\n"
+        f"🔒 Forced Join - Wajib join channel\n"
         f"📋 Scraper - Ambil daftar member\n"
         f"💬 Auto-Reply - Balas pesan otomatis\n"
         f"📮 Auto-Poster - Posting terjadwal\n"
@@ -68,6 +72,16 @@ async def help_command(update: Update, context):
         "/antispam on - Aktifkan anti-spam\n"
         "/antispam off - Nonaktifkan anti-spam\n"
         "/antispam settings - Lihat pengaturan\n\n"
+        "<b>🔐 Captcha:</b>\n"
+        "/captcha on - Aktifkan captcha\n"
+        "/captcha off - Nonaktifkan captcha\n"
+        "/captcha type [math|button] - Ubah tipe\n\n"
+        "<b>🔒 Forced Join:</b>\n"
+        "/forcejoin on - Aktifkan forced join\n"
+        "/forcejoin off - Nonaktifkan\n"
+        "/addforcejoin [id] [link] - Tambah channel\n"
+        "/removeforcejoin [id] - Hapus channel\n"
+        "/forcejoinlist - Lihat daftar\n\n"
         "<b>👋 Welcome:</b>\n"
         "/welcome on - Aktifkan welcome message\n"
         "/welcome off - Nonaktifkan welcome message\n"
@@ -93,7 +107,9 @@ async def help_command(update: Update, context):
         "/stats - Statistik grup hari ini\n"
         "/stats week - Statistik minggu ini\n"
         "/stats month - Statistik bulan ini\n"
-        "/topusers - User paling aktif\n"
+        "/topusers - User paling aktif\n\n"
+        "<b>⚙️ Settings:</b>\n"
+        "/settings - Menu pengaturan lengkap\n"
     )
     await update.message.reply_html(text)
 
@@ -105,6 +121,8 @@ async def post_init(application):
         BotCommand("help", "Lihat bantuan"),
         BotCommand("settings", "Pengaturan lengkap"),
         BotCommand("antispam", "Pengaturan anti-spam"),
+        BotCommand("captcha", "Pengaturan captcha"),
+        BotCommand("forcejoin", "Pengaturan forced join"),
         BotCommand("welcome", "Pengaturan welcome"),
         BotCommand("scrape", "Scrape member grup"),
         BotCommand("autoreply", "Pengaturan auto-reply"),
@@ -131,11 +149,29 @@ def main():
     crosspost = CrossPostHandler(db)
     analytics = AnalyticsHandler(db)
     settings = SettingsHandler(db)
+    captcha = CaptchaHandler(db)
+    forcejoin = ForceJoinHandler(db)
 
     # Basic commands
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("help", help_command))
     app.add_handler(CommandHandler("settings", settings.command))
+
+    # Captcha handlers
+    app.add_handler(CommandHandler("captcha", captcha.command))
+    app.add_handler(ChatMemberHandler(captcha.on_new_member, ChatMemberHandler.CHAT_MEMBER), group=5)
+    app.add_handler(CallbackQueryHandler(captcha.handle_captcha_callback, pattern="^captcha_"))
+
+    # Forced Join handlers
+    app.add_handler(CommandHandler("forcejoin", forcejoin.command))
+    app.add_handler(CommandHandler("addforcejoin", forcejoin.add_channel))
+    app.add_handler(CommandHandler("removeforcejoin", forcejoin.remove_channel))
+    app.add_handler(CommandHandler("forcejoinlist", forcejoin.list_channels))
+    app.add_handler(MessageHandler(
+        filters.ALL & filters.ChatType.GROUPS & ~filters.COMMAND & ~filters.StatusUpdate.ALL,
+        forcejoin.check_membership
+    ), group=0)
+    app.add_handler(CallbackQueryHandler(forcejoin.handle_verify_callback, pattern="^forcejoin_verify_"))
 
     # Anti-Spam handlers
     app.add_handler(CommandHandler("antispam", antispam.command))
